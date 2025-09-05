@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3 
+# Triple-quoted string to describe the purpose of the script
 """
 HIT137 – Assignment 2 (Q2): Australian Temperature Analysis
 
@@ -12,17 +13,21 @@ Writes results to:
 - largest_temp_range_station.txt
 - temperature_stability_stations.txt
 """
+# these lines import necessary modules - path/system level/data manipulation/hints
 from pathlib import Path
 import sys
 import pandas as pd
 from typing import Optional, Tuple, List, Dict
 
+# paths for input and output files relative to script location
 INPUT_FOLDER = Path(__file__).parent / "temperatures"
 OUT_AVG = Path(__file__).parent / "average_temp.txt"
 OUT_RANGE = Path(__file__).parent / "largest_temp_range_station.txt"
 OUT_STABILITY = Path(__file__).parent / "temperature_stability_stations.txt"
 
-# --------- Helpers ---------
+# --------- Helpers --------- 
+# This tries to find a column in the data frame that matches one of the names
+# if contains = True, it looks for substings of exact match
 
 def _find_column(df: pd.DataFrame, candidates: List[str], contains: bool=False) -> Optional[str]:
     cols = [c for c in df.columns]
@@ -42,6 +47,7 @@ def _find_column(df: pd.DataFrame, candidates: List[str], contains: bool=False) 
         return None
 
 def _season_from_month(month: int) -> str:
+    # converts month number to an Australian Season
     # Australian seasons
     if month in (12, 1, 2):
         return "Summer"
@@ -52,6 +58,7 @@ def _season_from_month(month: int) -> str:
     return "Spring"  # 9,10,11
 
 def _read_and_normalise_csv(path: Path) -> Optional[pd.DataFrame]:
+    # Reads CSV files and normalizes to have three columns and handles missing columns
     try:
         df = pd.read_csv(path)
     except Exception as e:
@@ -103,6 +110,7 @@ def _read_and_normalise_csv(path: Path) -> Optional[pd.DataFrame]:
     return out
 
 def load_all_data(input_folder: Path) -> pd.DataFrame:
+    # Loads all CSV files in the temperatures/folder
     all_rows = []
     csv_files = sorted(input_folder.glob("*.csv"))
     if not csv_files:
@@ -124,6 +132,7 @@ def load_all_data(input_folder: Path) -> pd.DataFrame:
 # --------- Analyses ---------
 
 def compute_seasonal_averages(df: pd.DataFrame) -> pd.Series:
+    # Adds season column based on the month and computes the average temperature per season
     df = df.copy()
     df["season"] = df["date"].dt.month.apply(_season_from_month)
     # drop NaN temps already handled; group and mean
@@ -134,18 +143,21 @@ def compute_seasonal_averages(df: pd.DataFrame) -> pd.Series:
     return seasonal
 
 def compute_temperature_ranges(df: pd.DataFrame) -> pd.DataFrame:
+    # Calculates the temperature range (max - Min) for each station
     g = df.groupby("station")["temp"]
     stats = g.agg(temp_min="min", temp_max="max")
     stats["range"] = stats["temp_max"] - stats["temp_min"]
-    return stats.sort_values("range", ascending=False)
+    return stats.sort_values("range", ascending=False) # type: ignore
 
 def compute_temperature_stability(df: pd.DataFrame) -> pd.Series:
+    # computes the standard deviation of temperatures for each station
     stds = df.groupby("station")["temp"].std(ddof=1)  # sample std dev
     return stds
 
 # --------- Writers ---------
 
 def write_average_temp(seasonal: pd.Series, out_path: Path) -> None:
+    # writes the season average temperature to a text file
     lines = []
     for season in ["Summer", "Autumn", "Winter", "Spring"]:
         val = seasonal.get(season, float("nan"))
@@ -157,6 +169,7 @@ def write_average_temp(seasonal: pd.Series, out_path: Path) -> None:
     print(f"[OK] Wrote seasonal averages to {out_path.name}")
 
 def write_largest_range(station_stats: pd.DataFrame, out_path: Path) -> None:
+    # Finds the stations with the largest temperatures and writes to a file
     if station_stats.empty:
         out_path.write_text("No data available.", encoding="utf-8")
         print(f"[OK] Wrote largest temperature range to {out_path.name} (empty)")
@@ -170,6 +183,7 @@ def write_largest_range(station_stats: pd.DataFrame, out_path: Path) -> None:
     print(f"[OK] Wrote largest temp range stations to {out_path.name}")
 
 def write_stability(stds: pd.Series, out_path: Path) -> None:
+    # identifies the most stable and most variable stations based on the standar deviation and writes to file
     if stds.empty:
         out_path.write_text("No data available.", encoding="utf-8")
         print(f"[OK] Wrote stability to {out_path.name} (empty)")
@@ -192,6 +206,7 @@ def write_stability(stds: pd.Series, out_path: Path) -> None:
     print(f"[OK] Wrote temperature stability stations to {out_path.name}")
 
 def main():
+    # Arranges the whole process - Loads data/Computes seasonal Averages/Computes temperature ranges and write them/computes stability and writes it
     df = load_all_data(INPUT_FOLDER)
     if df.empty:
         print("[FATAL] No valid data to process. Exiting.")
