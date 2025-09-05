@@ -1,4 +1,4 @@
-##ASSINGNMENT 3##
+#ASSINGNMENT 2 - Question 3 #
 
 import turtle as trl
 # user inputs to decide geometeric pattern (wondering if I should use float or int)
